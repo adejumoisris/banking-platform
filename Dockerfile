@@ -3,7 +3,7 @@ WORKDIR /app
 COPY pom.xml .
 COPY src src
 RUN mvn -B package
-FROM eclipse-temurin:17-jre
+FROM eclipse-temurin:25-jre
 WORKDIR /app
 RUN groupadd --gid 10001 banking && useradd --uid 10001 --gid banking --no-create-home banking
 COPY --from=build /app/target/banking-platform-*.jar app.jar
