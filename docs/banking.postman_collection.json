@@ -1,0 +1,195 @@
+{
+  "info": {
+    "name": "Core Banking API",
+    "schema": "https://schema.getpostman.com/json/collection/v2.1.0/collection.json"
+  },
+  "auth": {
+    "type": "basic",
+    "basic": [
+      {
+        "key": "username",
+        "value": "demo",
+        "type": "string"
+      },
+      {
+        "key": "password",
+        "value": "local-demo-only",
+        "type": "string"
+      }
+    ]
+  },
+  "variable": [
+    {
+      "key": "baseUrl",
+      "value": "http://localhost:8080/api/v1"
+    },
+    {
+      "key": "customerId",
+      "value": ""
+    },
+    {
+      "key": "accountId",
+      "value": ""
+    },
+    {
+      "key": "destinationId",
+      "value": ""
+    },
+    {
+      "key": "postingId",
+      "value": ""
+    },
+    {
+      "key": "loanId",
+      "value": ""
+    }
+  ],
+  "item": [
+    {
+      "name": "Create customer",
+      "request": {
+        "method": "POST",
+        "header": [
+          {
+            "key": "Content-Type",
+            "value": "application/json"
+          }
+        ],
+        "url": "{{baseUrl}}/customers",
+        "body": {
+          "mode": "raw",
+          "raw": "{\n  \"fullName\": \"Ada Example\",\n  \"email\": \"ada@example.com\"\n}"
+        }
+      }
+    },
+    {
+      "name": "Verify customer",
+      "request": {
+        "method": "POST",
+        "header": [],
+        "url": "{{baseUrl}}/customers/{{customerId}}/verify"
+      }
+    },
+    {
+      "name": "Open account",
+      "request": {
+        "method": "POST",
+        "header": [
+          {
+            "key": "Content-Type",
+            "value": "application/json"
+          }
+        ],
+        "url": "{{baseUrl}}/accounts",
+        "body": {
+          "mode": "raw",
+          "raw": "{\n  \"customerId\": \"{{customerId}}\",\n  \"currency\": \"NGN\"\n}"
+        }
+      }
+    },
+    {
+      "name": "Get account",
+      "request": {
+        "method": "GET",
+        "header": [],
+        "url": "{{baseUrl}}/accounts/{{accountId}}"
+      }
+    },
+    {
+      "name": "Deposit",
+      "request": {
+        "method": "POST",
+        "header": [
+          {
+            "key": "Content-Type",
+            "value": "application/json"
+          },
+          {
+            "key": "Idempotency-Key",
+            "value": "deposit-{{$guid}}"
+          }
+        ],
+        "url": "{{baseUrl}}/accounts/{{accountId}}/deposits",
+        "body": {
+          "mode": "raw",
+          "raw": "{\n  \"amount\": 1000\n}"
+        }
+      }
+    },
+    {
+      "name": "Transfer",
+      "request": {
+        "method": "POST",
+        "header": [
+          {
+            "key": "Content-Type",
+            "value": "application/json"
+          },
+          {
+            "key": "Idempotency-Key",
+            "value": "transfer-{{$guid}}"
+          }
+        ],
+        "url": "{{baseUrl}}/transfers",
+        "body": {
+          "mode": "raw",
+          "raw": "{\n  \"sourceId\": \"{{accountId}}\",\n  \"destinationId\": \"{{destinationId}}\",\n  \"amount\": 100\n}"
+        }
+      }
+    },
+    {
+      "name": "Ledger",
+      "request": {
+        "method": "GET",
+        "header": [],
+        "url": "{{baseUrl}}/postings/{{postingId}}/ledger"
+      }
+    },
+    {
+      "name": "Originate loan",
+      "request": {
+        "method": "POST",
+        "header": [
+          {
+            "key": "Content-Type",
+            "value": "application/json"
+          }
+        ],
+        "url": "{{baseUrl}}/loans",
+        "body": {
+          "mode": "raw",
+          "raw": "{\n  \"accountId\": \"{{accountId}}\",\n  \"principal\": 200\n}"
+        }
+      }
+    },
+    {
+      "name": "Disburse loan",
+      "request": {
+        "method": "POST",
+        "header": [],
+        "url": "{{baseUrl}}/loans/{{loanId}}/disburse"
+      }
+    },
+    {
+      "name": "Repay loan",
+      "request": {
+        "method": "POST",
+        "header": [
+          {
+            "key": "Content-Type",
+            "value": "application/json"
+          },
+          {
+            "key": "Idempotency-Key",
+            "value": "repay-{{$guid}}"
+          }
+        ],
+        "url": "{{baseUrl}}/loans/{{loanId}}/repayments",
+        "body": {
+          "mode": "raw",
+          "raw": "{\n  \"amount\": 200\n}"
+        }
+      }
+    }
+  ]
+}

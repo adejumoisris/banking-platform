@@ -1,0 +1,33 @@
+services:
+  postgres:
+    image: postgres:17-alpine
+    environment:
+      POSTGRES_DB: banking
+      POSTGRES_USER: banking
+      POSTGRES_PASSWORD: ${POSTGRES_PASSWORD:?Copy .env.example to .env first}
+    volumes:
+      - banking-data:/var/lib/postgresql/data
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U banking -d banking"]
+      interval: 5s
+      timeout: 5s
+      retries: 15
+  api:
+    build: .
+    ports:
+      - "127.0.0.1:8080:8080"
+    environment:
+      SPRING_PROFILES_ACTIVE: local
+      SPRING_DATASOURCE_URL: jdbc:postgresql://postgres:5432/banking
+      SPRING_DATASOURCE_USERNAME: banking
+      SPRING_DATASOURCE_PASSWORD: ${POSTGRES_PASSWORD}
+      FINERACT_ENABLED: ${FINERACT_ENABLED:-false}
+      FINERACT_URL: ${FINERACT_URL:-https://localhost:8443/fineract-provider/api/v1}
+      FINERACT_TENANT: ${FINERACT_TENANT:-default}
+      FINERACT_USERNAME: ${FINERACT_USERNAME:-}
+      FINERACT_PASSWORD: ${FINERACT_PASSWORD:-}
+    depends_on:
+      postgres:
+        condition: service_healthy
+volumes:
+  banking-data:
