@@ -1,5 +1,6 @@
 package com.rova.banking.payment;
 
+import com.rova.banking.audit.ActivityRecorder;
 import com.rova.banking.account.*;
 import com.rova.banking.domain.*;
 import com.rova.banking.ledger.JournalService;
@@ -12,11 +13,13 @@ import org.springframework.transaction.annotation.Transactional;
 @Service
 @Transactional(timeout = 15)
 public class PaymentService {
+    private final ActivityRecorder activity;
     private final AccountRepository accounts;
     private final PostingRepository postings;
     private final JournalService journal;
     private final Clock clock;
-    public PaymentService(AccountRepository accounts, PostingRepository postings, JournalService journal, Clock clock) {
+    public PaymentService(AccountRepository accounts, PostingRepository postings, JournalService journal, Clock clock, ActivityRecorder activity) {
+        this.activity = activity;
         this.accounts = accounts;
         this.postings = postings;
         this.journal = journal;
@@ -48,6 +51,7 @@ public class PaymentService {
         if (to != null) accounts.save(to);
         Posting posting = postings.save(Posting.create(key, source, destination, money, kind, clock.instant()));
         journal.record(posting);
+        activity.record("posting." + kind.name().toLowerCase(java.util.Locale.ROOT), posting.getId());
         return posting;
     }
     @Transactional(readOnly = true, timeout = 5)

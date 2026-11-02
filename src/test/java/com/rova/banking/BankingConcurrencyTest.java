@@ -44,4 +44,26 @@ class BankingConcurrencyTest {
   assertThat(accounts.account(source).getBalance()).isEqualByComparingTo("1.00");
   assertThat(accounts.account(destination).getBalance()).isEqualByComparingTo("99999999999999999.99");
  }
+
+ @Autowired org.springframework.transaction.PlatformTransactionManager transactions;
+ @Test void lockedPostingRefreshesAnEarlierUnlockedRead() throws Exception {
+  UUID id = account();
+  var read = new CountDownLatch(1);
+  var funded = new CountDownLatch(1);
+  var pool = Executors.newSingleThreadExecutor();
+  try {
+   var withdrawal = pool.submit(() -> new org.springframework.transaction.support.TransactionTemplate(transactions).execute(status -> {
+    accounts.account(id); // Cache an initial zero balance in this persistence context.
+    read.countDown();
+    try { if (!funded.await(15, TimeUnit.SECONDS)) throw new IllegalStateException("Funding timed out"); }
+    catch (InterruptedException ex) { Thread.currentThread().interrupt(); throw new IllegalStateException(ex); }
+    return payments.post(UUID.randomUUID().toString(), id, null, BigDecimal.ONE, PostingKind.WITHDRAWAL).getId();
+   }));
+   assertThat(read.await(15, TimeUnit.SECONDS)).isTrue();
+   payments.post(UUID.randomUUID().toString(), null, id, BigDecimal.TEN, PostingKind.DEPOSIT);
+   funded.countDown();
+   assertThat(withdrawal.get(15, TimeUnit.SECONDS)).isNotNull();
+   assertThat(accounts.account(id).getBalance()).isEqualByComparingTo("9.00");
+  } finally { funded.countDown(); pool.shutdownNow(); }
+ }
 }

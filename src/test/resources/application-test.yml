@@ -1,11 +1,12 @@
 spring:
   datasource:
-    url: jdbc:h2:mem:banking;MODE=PostgreSQL;DB_CLOSE_DELAY=-1
-    driver-class-name: org.h2.Driver
-    username: sa
-    password:
+    url: ${TEST_DATABASE_URL:jdbc:h2:mem:banking;MODE=PostgreSQL;DB_CLOSE_DELAY=-1}
+    driver-class-name: ${TEST_DATABASE_DRIVER:org.h2.Driver}
+    username: ${TEST_DATABASE_USER:sa}
+    password: ${TEST_DATABASE_PASSWORD:}
   flyway:
     enabled: true
+    locations: ${TEST_FLYWAY_LOCATIONS:classpath:db/migration}
   jpa:
     hibernate:
       ddl-auto: validate
