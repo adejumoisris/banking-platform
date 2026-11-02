@@ -1,6 +1,8 @@
+param([string]$Username = "demo", [string]$Password = $env:LOCAL_DEMO_PASSWORD)
 $ErrorActionPreference = 'Stop'
 $base = 'http://localhost:8080/api/v1'
-$auth = [Convert]::ToBase64String([Text.Encoding]::ASCII.GetBytes('demo:local-demo-only'))
+if ([string]::IsNullOrWhiteSpace($Password)) { throw 'Pass -Password or set LOCAL_DEMO_PASSWORD.' }
+$auth = [Convert]::ToBase64String([Text.Encoding]::UTF8.GetBytes("${Username}:$Password"))
 $headers = @{ Authorization = "Basic $auth" }
 function Send-Post($path, $body, $key) {
     $requestHeaders = $headers.Clone()

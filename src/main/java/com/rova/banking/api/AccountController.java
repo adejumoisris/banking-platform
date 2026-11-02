@@ -12,12 +12,22 @@ import org.springframework.web.bind.annotation.*;
 @RestController
 @RequestMapping("/api/v1/accounts")
 public class AccountController {
-    private final AccountService accounts;
-    public AccountController(AccountService accounts) { this.accounts = accounts; }
-    @PostMapping @ResponseStatus(HttpStatus.CREATED) @PreAuthorize("hasRole('OPERATIONS')")
-    public AccountView open(@Valid @RequestBody AccountRequest request) {
-        return AccountView.of(accounts.openAccount(request.customerId(), request.currency()));
-    }
-    @GetMapping("/{id}") @PreAuthorize("hasAnyRole('OPERATIONS','AUDITOR')")
-    public AccountView get(@PathVariable UUID id) { return AccountView.of(accounts.account(id)); }
+  private final AccountService accounts;
+
+  public AccountController(AccountService accounts) {
+    this.accounts = accounts;
+  }
+
+  @PostMapping
+  @ResponseStatus(HttpStatus.CREATED)
+  @PreAuthorize("hasRole('OPERATIONS')")
+  public AccountView open(@Valid @RequestBody AccountRequest request) {
+    return AccountView.of(accounts.openAccount(request.customerId(), request.currency()));
+  }
+
+  @GetMapping("/{id}")
+  @PreAuthorize("hasAnyRole('OPERATIONS','AUDITOR')")
+  public AccountView get(@PathVariable UUID id) {
+    return AccountView.of(accounts.account(id));
+  }
 }

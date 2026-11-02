@@ -1,6 +1,6 @@
 <project xmlns="http://maven.apache.org/POM/4.0.0" xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance" xsi:schemaLocation="http://maven.apache.org/POM/4.0.0 https://maven.apache.org/xsd/maven-4.0.0.xsd">
 <modelVersion>4.0.0</modelVersion>
-<parent><groupId>org.springframework.boot</groupId><artifactId>spring-boot-starter-parent</artifactId><version>3.5.7</version><relativePath/></parent>
+<parent><groupId>org.springframework.boot</groupId><artifactId>spring-boot-starter-parent</artifactId><version>3.5.16</version><relativePath/></parent>
 <groupId>com.rova</groupId><artifactId>banking-platform</artifactId><version>0.1.0-SNAPSHOT</version>
 <properties><java.version>17</java.version></properties>
 <dependencies>
@@ -17,6 +17,21 @@
 <dependency><groupId>org.springframework.boot</groupId><artifactId>spring-boot-starter-test</artifactId><scope>test</scope></dependency>
 <dependency><groupId>org.springframework.security</groupId><artifactId>spring-security-test</artifactId><scope>test</scope></dependency>
 <dependency><groupId>com.h2database</groupId><artifactId>h2</artifactId><scope>test</scope></dependency>
+<dependency><groupId>com.tngtech.archunit</groupId><artifactId>archunit-junit5</artifactId><version>1.4.1</version><scope>test</scope></dependency>
 </dependencies>
-<build><plugins><plugin><groupId>org.springframework.boot</groupId><artifactId>spring-boot-maven-plugin</artifactId></plugin></plugins></build>
+<build><plugins><plugin><groupId>org.springframework.boot</groupId><artifactId>spring-boot-maven-plugin</artifactId></plugin>
+<plugin><groupId>org.apache.maven.plugins</groupId><artifactId>maven-enforcer-plugin</artifactId><version>3.5.0</version><executions><execution><id>toolchain</id><goals><goal>enforce</goal></goals><configuration><rules><requireJavaVersion><version>[17,)</version></requireJavaVersion><requireMavenVersion><version>[3.9,)</version></requireMavenVersion></rules></configuration></execution></executions></plugin>
+<plugin><groupId>com.diffplug.spotless</groupId><artifactId>spotless-maven-plugin</artifactId><version>2.43.0</version><configuration><java><googleJavaFormat><version>1.24.0</version></googleJavaFormat><removeUnusedImports/></java></configuration><executions><execution><id>format</id><phase>validate</phase><goals><goal>check</goal></goals></execution></executions></plugin>
+<plugin>
+<groupId>org.flywaydb</groupId><artifactId>flyway-maven-plugin</artifactId><version>${flyway.version}</version>
+<configuration>
+<url>${env.MIGRATION_DATABASE_URL}</url><user>${env.MIGRATION_DATABASE_USER}</user><password>${env.MIGRATION_DATABASE_PASSWORD}</password>
+<cleanDisabled>true</cleanDisabled>
+<locations><location>filesystem:src/main/resources/db/migration</location><location>filesystem:src/main/resources/db/postgresql</location></locations>
+</configuration>
+<dependencies>
+<dependency><groupId>org.flywaydb</groupId><artifactId>flyway-database-postgresql</artifactId><version>${flyway.version}</version></dependency>
+<dependency><groupId>org.postgresql</groupId><artifactId>postgresql</artifactId><version>${postgresql.version}</version></dependency>
+</dependencies>
+</plugin></plugins></build>
 </project>

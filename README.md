@@ -1,50 +1,71 @@
-# Core Banking Platform
+# Banking Platform
 
-Java 17 / Spring Boot / PostgreSQL banking backend inspired by the supplied Rova role description. Educational, staff-operated reference implementation; not approved to hold real customer funds.
+A Java 17 / Spring Boot / PostgreSQL staff-operated banking backend. Customer onboarding, accounts, teller deposits and withdrawals, internal transfers, a balanced journal, and principal-only lending are implemented. This repository is a hardened reference system, not an approval to operate a regulated bank.
 
-## Run
+## Local run
 
-Install and start Docker Desktop, then run from this directory:
+Start Docker Desktop. From the repository root:
 
 ```powershell
 Copy-Item .env.example .env
+# Set LOCAL_DEMO_PASSWORD and POSTGRES_PASSWORD in .env.
 docker compose up --build
 ```
 
-API: http://localhost:8080/api/v1. Swagger: http://localhost:8080/swagger-ui/index.html (browser prompts for Basic authentication). Local-only credentials: `demo` / `local-demo-only`. Health: http://localhost:8080/actuator/health.
+API: http://localhost:8080/api/v1. Swagger: http://localhost:8080/swagger-ui/index.html. Local username: `demo`; password: the LOCAL_DEMO_PASSWORD you configured. The example password is only for local development. Production authentication uses signed JWTs and never registers this demo user.
 
-For development with Java 17+ and Maven, supply PostgreSQL connection environment variables and run `mvn spring-boot:run -Dspring-boot.run.profiles=local`. Run tests with `mvn verify`. On this machine Java 8 is the default; use `$env:JAVA_HOME = 'C:/Users/Idris.Adejumo/.jdks/ms-17.0.18'` in your PowerShell session before invoking Maven.
+Run `scripts/demo.ps1 -Password <your-local-password>` or import `docs/banking.postman_collection.json`; set the collection credentials and ID variables. Reuse a fixed Idempotency-Key for retries; the collection generates fresh keys by default.
 
-Docker uses a local profile with a demo staff user. Without this profile the API validates JWTs from `JWT_ISSUER_URI`; tokens need a `roles` array containing OPERATIONS, COMPLIANCE, TELLER, CREDIT or AUDITOR. Provision an external OAuth2/OIDC provider. These endpoints are staff-facing; customer ownership and tenant isolation are not implemented.
+## Verify
 
-## Example workflow
+Java 17+ and Maven 3.9+ are required. Select Java 17 using JAVA_HOME if Java 8 is your default.
 
-Use JSON Content-Type and local credentials. `scripts/demo.ps1` runs onboarding, deposit, ledger inspection and a loan cycle.
+```powershell
+mvn spotless:apply
+mvn verify
+```
 
-1. POST `/api/v1/customers` with `{"fullName":"Ada Example","email":"ada@example.com"}`.
-2. POST `/api/v1/customers/{id}/verify` to record an authorized compliance decision.
-3. POST `/api/v1/accounts` with `{"customerId":"<id>","currency":"NGN"}`.
-4. POST `/api/v1/accounts/{id}/deposits` with `{"amount":1000.00}` and `Idempotency-Key: deposit-001`.
-5. Create a second verified customer/account, then POST `/api/v1/transfers` with sourceId, destinationId and amount, supplying a unique Idempotency-Key.
-6. GET `/api/v1/postings/{id}/ledger` to inspect debit and credit.
-7. POST `/api/v1/loans` with accountId and principal; POST `/api/v1/loans/{id}/disburse`; POST `/api/v1/loans/{id}/repayments` with amount and Idempotency-Key.
+The default suite uses H2 for fast business, concurrency and API regressions. CI supplies PostgreSQL 17 and runs the same suite plus PostgreSQL-only deferred-balance and immutability tests. H2 does not validate PostgreSQL trigger behavior. See [the testing guide](docs/testing.md) for exact environment variables.
 
-Use a new key per business operation and the same key on retries. Amounts use exact decimals with two fractional digits. Transfers lock accounts in UUID order; balances and balanced journal entries commit in one database transaction. The database prevents negative balances and duplicate posting keys. Conflicting keys on different account sets may return 409; retry only the original operation.
+## Design
 
-## Apache Fineract boundary
+Each feature owns its entities, use cases and repository contracts. Constructor-injected adapters implement persistence and audit ports. Domain rules do not depend on HTTP. Entities encapsulate their state; controllers return immutable DTOs. ArchUnit enforces key boundaries and Spotless enforces a common format.
 
-`FineractGateway` provides HTTP methods to read and create Fineract clients. Set FINERACT_ENABLED=true and configure its URL, tenant and credentials against a separately provisioned Fineract instance with trusted TLS. It is not called by local banking workflows. The local ledger is the sole source of truth for this demo. Fineract is not included in compose. Before production, choose Fineract as authoritative and implement durable command delivery, remote ID mapping, reconciliation and failure recovery rather than dual-writing ledgers.
+Payment transactions lock accounts in UUID order and refresh cached state under the lock. Balances, posting, two journal entries, actor audit and an outbox record commit together. All monetary values use exact minor units and bounded decimals. Failed transfers roll back the entire operation. PostgreSQL adds deferred journal-balance checks and append-only financial/audit records. Idempotency keys are global within this single-bank deployment, not scoped per tenant. A key collision across unrelated account sets returns 409; retry only the original request.
 
-## Included and outstanding
+```mermaid
+flowchart LR
+    Staff[Staff client] --> API[Controllers and DTOs]
+    IdP[OIDC issuer / JWKs] --> Security[JWT and role checks]
+    Security --> API
+    API --> Services[Customer / Account / Payment / Loan use cases]
+    Services --> Domain[Money and state rules]
+    Services --> Ports[Repository and activity ports]
+    Ports --> Adapters[JPA and JDBC adapters]
+    Adapters --> PG[(PostgreSQL: balances / journal / audit / outbox)]
+    Worker[Future event dispatcher] -.-> PG
+```
 
-Included: onboarding, manual KYC decision, currency accounts, deposits, withdrawals, atomic internal transfers, balanced journal, idempotency, principal-only loans, staff RBAC, JWT resource server, validation, migrations, tests, Docker, OpenAPI, health, Prometheus metrics, CI and dependency scanning.
+See [architecture](docs/architecture.md), [ADRs](docs/adr/0001-transactional-modular-monolith.md), [coverage](docs/requirements.md), and [operations](docs/operations.md).
 
-Outstanding: automated KYC/AML/sanctions, maker-checker approval, immutable staff audit trail, settlement/reconciliation, interest/accrual/amortization, delinquency/fees, underwriting, external payment gateways/credit bureaus/notifications, Kafka/outbox, Redis, Kubernetes/AWS, OpenTelemetry export, SonarQube, rate limits, secrets management, JWT audience checks, load/penetration testing, backup recovery and regulatory approval. KYC here records a staff decision and does not verify identity. Deposits are teller postings and do not collect external funds. No FX conversion.
+## Production configuration
 
-H2 tests exercise business rules; PostgreSQL concurrency and migration validation are required before deployment. See docs/architecture.md and docs/requirements.md. Import docs/banking.postman_collection.json into Postman and populate ID variables from responses. Keep a fixed key when testing retries; the collection generates a new key for each send. A Kubernetes template and SonarQube scanner properties are included but need your registry, secrets, cluster and server configuration.
+Use a configured OIDC provider and explicit HTTPS JWT_ISSUER_URI, JWT_JWK_SET_URI and JWT_AUDIENCE. Tokens require a nonempty subject and a roles array. Staff roles: OPERATIONS, COMPLIANCE, TELLER, CREDIT, AUDITOR; MONITORING is restricted to Prometheus scraping. JWT signatures, expiry, issuer and audience are verified. API docs are disabled outside the local profile. Combining `local` and `production` profiles fails startup.
+
+Use an external PostgreSQL database with TLS, a restricted runtime role, separate migration credentials and managed secrets. The production compose file and Kubernetes manifest are templates requiring environment-specific configuration. Run migrations before deploying with automatic migrations disabled. Do not deploy the local compose stack publicly.
+
+## Functional boundaries
+
+This is a staff API for one banking entity. It does not implement customer self-service ownership, multitenancy, maker-checker approval, real KYC/AML/sanctions, interest/fees/amortization, FX, external settlement or regulatory reporting. A teller deposit records a posting; it does not collect external money.
+
+The optional FineractGateway is an outbound HTTP adapter for client reads/creation. It is not wired to local ledger writes. Fineract is not provisioned. The local ledger remains authoritative; write-through integration requires remote ID mapping, durable commands, reconciliation and recovery. Do not introduce dual ledger writes.
+
+Outbox records are durable delivery intents. A Kafka/webhook dispatcher and idempotent consumers are not yet implemented; no broker-delivery guarantee is claimed. Audit records are protected from ordinary DML in PostgreSQL, not from a privileged DBA. Archive signed audit exports in a separately controlled store for stronger tamper evidence.
+
+A deployment needs product-specific controls, a supported framework release/support plan, vulnerability and penetration review, load testing, backup restore drills and operational sign-off. See the runbook for the remaining gates.
 
 ## Upstream references
 
-- Spring Boot requirements: https://docs.spring.io/spring-boot/3.5/system-requirements.html
-- Springdoc compatibility: https://springdoc.org/v2/
-- Apache Fineract API and deployment: https://github.com/apache/fineract and https://fineract.apache.org/docs/stable/
+- [Spring Security JWT validation](https://docs.spring.io/spring-security/reference/6.5/servlet/oauth2/resource-server/jwt.html)
+- [PostgreSQL deferred constraint triggers](https://www.postgresql.org/docs/17/sql-createtrigger.html)
+- [Fineract](https://fineract.apache.org/docs/stable/)

@@ -6,8 +6,11 @@ import org.springframework.stereotype.Component;
 
 @Component
 public class SecurityActorProvider implements ActorProvider {
-    @Override public String currentActor() {
-        var authentication = SecurityContextHolder.getContext().getAuthentication();
-        return authentication != null && authentication.isAuthenticated() ? authentication.getName() : "system";
-    }
+  @Override
+  public String currentActor() {
+    var authentication = SecurityContextHolder.getContext().getAuthentication();
+    return authentication != null && authentication.isAuthenticated()
+        ? authentication.getName()
+        : "system";
+  }
 }

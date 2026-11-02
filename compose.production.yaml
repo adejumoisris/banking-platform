@@ -1,0 +1,26 @@
+# Standalone production template: docker compose --env-file .env.production -f compose.production.yaml up -d
+services:
+  api:
+    image: ${BANKING_IMAGE:?Set an immutable scanned image digest}
+    user: '10001:10001'
+    read_only: true
+    tmpfs:
+      - /tmp
+    cap_drop: [ALL]
+    security_opt: ['no-new-privileges:true']
+    ports:
+      - '127.0.0.1:8080:8080'
+    environment:
+      SPRING_PROFILES_ACTIVE: production
+      DATABASE_URL: ${DATABASE_URL:?Set a PostgreSQL URL with verified TLS}
+      DATABASE_USER: ${DATABASE_USER:?Set the restricted runtime user}
+      DATABASE_PASSWORD: ${DATABASE_PASSWORD:?Supply a managed runtime secret}
+      FLYWAY_ENABLED: 'false'
+      JWT_ISSUER_URI: ${JWT_ISSUER_URI:?Set the trusted HTTPS issuer}
+      JWT_JWK_SET_URI: ${JWT_JWK_SET_URI:?Set the trusted HTTPS JWK endpoint}
+      JWT_AUDIENCE: ${JWT_AUDIENCE:?Set the expected audience}
+      JAVA_TOOL_OPTIONS: '-XX:MaxRAMPercentage=70 -XX:+ExitOnOutOfMemoryError'
+    mem_limit: 1g
+    cpus: 1.0
+    stop_grace_period: 40s
+    restart: unless-stopped

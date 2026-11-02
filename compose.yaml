@@ -18,6 +18,7 @@ services:
       - "127.0.0.1:8080:8080"
     environment:
       SPRING_PROFILES_ACTIVE: local
+      LOCAL_DEMO_PASSWORD: ${LOCAL_DEMO_PASSWORD:?Set LOCAL_DEMO_PASSWORD in .env}
       SPRING_DATASOURCE_URL: jdbc:postgresql://postgres:5432/banking
       SPRING_DATASOURCE_USERNAME: banking
       SPRING_DATASOURCE_PASSWORD: ${POSTGRES_PASSWORD}

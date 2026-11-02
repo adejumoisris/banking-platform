@@ -1,0 +1,9 @@
+banking:
+  local:
+    username: ${LOCAL_DEMO_USERNAME:demo}
+    password: ${LOCAL_DEMO_PASSWORD}
+springdoc:
+  api-docs:
+    enabled: true
+  swagger-ui:
+    enabled: true
