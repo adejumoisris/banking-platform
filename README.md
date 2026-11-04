@@ -25,11 +25,13 @@ mvn spotless:apply
 mvn verify
 ```
 
+For an isolated PostgreSQL run plus an HTTP banking demo on Windows, use `scripts/verify-postgres.ps1 -PostgresBin 'C:\path\to\pgsql\bin'`; see the testing guide for details.
+
 The default suite uses H2 for fast business, concurrency and API regressions. CI supplies PostgreSQL 17 and runs the same suite plus PostgreSQL-only deferred-balance and immutability tests. H2 does not validate PostgreSQL trigger behavior. See [the testing guide](docs/testing.md) for exact environment variables.
 
 ## Design
 
-Each feature owns its entities, use cases and repository contracts. Constructor-injected adapters implement persistence and audit ports. Domain rules do not depend on HTTP. Entities encapsulate their state; controllers return immutable DTOs. ArchUnit enforces key boundaries and Spotless enforces a common format.
+Packages are organized into controller, service, repository, model, dto, config, filter, exception, domain, audit and infrastructure layers. Constructor-injected adapters implement persistence and audit ports. Domain rules do not depend on HTTP. Entities encapsulate their state; controllers return immutable DTOs. ArchUnit enforces key boundaries and Spotless enforces a common format.
 
 Payment transactions lock accounts in UUID order and refresh cached state under the lock. Balances, posting, two journal entries, actor audit and an outbox record commit together. All monetary values use exact minor units and bounded decimals. Failed transfers roll back the entire operation. PostgreSQL adds deferred journal-balance checks and append-only financial/audit records. Idempotency keys are global within this single-bank deployment, not scoped per tenant. A key collision across unrelated account sets returns 409; retry only the original request.
 
