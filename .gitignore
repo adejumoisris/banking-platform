@@ -10,3 +10,5 @@ replay_pid*
 !.env.example
 !.env.production.example
 .spotless-index
+
+.sandbox/

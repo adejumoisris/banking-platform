@@ -74,6 +74,7 @@ class FineractServiceTest {
   void queueIsIdempotentAndTransactional() {
     UUID customer = customer();
     var first = service.enqueueCustomer(customer);
+    assertThat(first.payload()).contains("\"legalFormId\":1");
     assertThat(service.enqueueCustomer(customer).id()).isEqualTo(first.id());
     verifyNoInteractions(remote);
     UUID other = customer();

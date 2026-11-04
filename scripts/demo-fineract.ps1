@@ -1,7 +1,8 @@
 param(
     [string]$BaseUrl = 'http://localhost:8080',
     [string]$Username = 'demo',
-    [string]$Password = $env:LOCAL_DEMO_PASSWORD
+    [string]$Password = $env:LOCAL_DEMO_PASSWORD,
+    [switch]$UseWorker
 )
 $ErrorActionPreference = 'Stop'
 if ([string]::IsNullOrWhiteSpace($Password)) { throw 'Set LOCAL_DEMO_PASSWORD or pass -Password for the local banking API.' }
@@ -16,7 +17,11 @@ function Send-Post($path, $body) {
 function Complete-Command($command) {
     $deadline = [DateTime]::UtcNow.AddSeconds(180)
     while ([DateTime]::UtcNow -lt $deadline) {
-        $command = Send-Post "/integrations/fineract/commands/$($command.id)/dispatch" $null
+        if ($UseWorker) {
+            $command = Invoke-RestMethod -Uri "$base/integrations/fineract/commands/$($command.id)" -Headers $headers -TimeoutSec 30
+        } else {
+            $command = Send-Post "/integrations/fineract/commands/$($command.id)/dispatch" $null
+        }
         if ($command.status -eq 'SUCCEEDED') {
             if ([long]$command.remoteId -lt 1) { throw 'Successful command has no valid remote mapping.' }
             return $command
@@ -42,6 +47,7 @@ $finalAccount = Invoke-RestMethod -Uri "$base/accounts/$($account.id)" -Headers 
 if ([decimal]$finalAccount.balance -ne 0) { throw 'Provisioning unexpectedly changed the local balance.' }
 [pscustomobject]@{
     Result = 'PASS'
+    DispatchMode = $(if ($UseWorker) { 'BACKGROUND' } else { 'MANUAL' })
     LocalCustomerId = $customer.id
     FineractClientId = $clientResult.remoteId
     LocalAccountId = $account.id

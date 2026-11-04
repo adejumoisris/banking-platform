@@ -65,6 +65,7 @@ public class FineractService {
     Map<String, Object> payload = new LinkedHashMap<>();
     payload.put("externalId", externalId);
     payload.put("fullname", customer.getFullName());
+    payload.put("legalFormId", 1);
     payload.put("officeId", settings.officeId());
     payload.put("active", true);
     payload.put("activationDate", LocalDate.now(clock).toString());

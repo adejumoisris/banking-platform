@@ -1,0 +1,70 @@
+# Local synthetic-data sandbox only. Credentials are read from the ignored .env.fineract-sandbox.
+name: rova-fineract-sandbox
+services:
+  fineract-db:
+    image: postgres:18.3
+    environment:
+      POSTGRES_DB: fineract_tenants
+      POSTGRES_USER: postgres
+      POSTGRES_PASSWORD: ${FINERACT_DB_PASSWORD:?Initialize sandbox credentials first}
+    volumes:
+      - fineract-data:/var/lib/postgresql
+      - ./deploy/fineract-sandbox-init.sql:/docker-entrypoint-initdb.d/01-fineract.sql:ro
+    healthcheck:
+      test: [CMD-SHELL, 'pg_isready -U postgres -d fineract_tenants']
+      interval: 5s
+      timeout: 5s
+      retries: 30
+    restart: unless-stopped
+  fineract:
+    image: apache/fineract@sha256:c7b24478c75f97aceb4385b3b2533e1879634b7ff8c2f0be4a80f05354604857
+    ports:
+      - '127.0.0.1:8443:8443'
+    environment:
+      FINERACT_NODE_ID: '1'
+      FINERACT_SERVER_SSL_ENABLED: 'false'
+      FINERACT_SERVER_PORT: '8443'
+      FINERACT_SECURITY_BASICAUTH_ENABLED: 'true'
+      FINERACT_SECURITY_OAUTH_ENABLED: 'false'
+      FINERACT_HIKARI_DRIVER_SOURCE_CLASS_NAME: org.postgresql.Driver
+      FINERACT_HIKARI_JDBC_URL: jdbc:postgresql://fineract-db:5432/fineract_tenants
+      FINERACT_HIKARI_USERNAME: postgres
+      FINERACT_HIKARI_PASSWORD: ${FINERACT_DB_PASSWORD}
+      FINERACT_HIKARI_MINIMUM_IDLE: '1'
+      FINERACT_HIKARI_MAXIMUM_POOL_SIZE: '5'
+      FINERACT_DEFAULT_TENANTDB_HOSTNAME: fineract-db
+      FINERACT_DEFAULT_TENANTDB_PORT: '5432'
+      FINERACT_DEFAULT_TENANTDB_UID: postgres
+      FINERACT_DEFAULT_TENANTDB_PWD: ${FINERACT_DB_PASSWORD}
+      FINERACT_DEFAULT_TENANTDB_NAME: fineract_default
+      FINERACT_DEFAULT_TENANTDB_IDENTIFIER: default
+      FINERACT_DEFAULT_TENANTDB_TIMEZONE: Africa/Lagos
+      FINERACT_DEFAULT_TENANTDB_CONN_PARAMS: ''
+      FINERACT_DEFAULT_MASTER_PASSWORD: ${FINERACT_MASTER_PASSWORD}
+      FINERACT_REMOTE_JOB_MESSAGE_HANDLER_SPRING_EVENTS_ENABLED: 'true'
+      FINERACT_CONTENT_FILESYSTEM_ROOT_FOLDER: /tmp
+      JAVA_TOOL_OPTIONS: '-Xms128m -Xmx768m -XX:+UseSerialGC -XX:ActiveProcessorCount=2 -XX:TieredStopAtLevel=1'
+    depends_on:
+      fineract-db:
+        condition: service_healthy
+    mem_limit: 2g
+    restart: unless-stopped
+  banking-db:
+    image: postgres:17-alpine
+    environment:
+      POSTGRES_DB: banking_sandbox
+      POSTGRES_USER: banking_sandbox
+      POSTGRES_PASSWORD: ${BANKING_DB_PASSWORD:?Initialize sandbox credentials first}
+    ports:
+      - '127.0.0.1:55432:5432'
+    volumes:
+      - banking-data:/var/lib/postgresql/data
+    healthcheck:
+      test: [CMD-SHELL, 'pg_isready -U banking_sandbox -d banking_sandbox']
+      interval: 5s
+      timeout: 5s
+      retries: 30
+    restart: unless-stopped
+volumes:
+  fineract-data:
+  banking-data:

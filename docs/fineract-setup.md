@@ -2,11 +2,48 @@
 
 ## Current status
 
-The local ledger owns money. The integration provisions verified clients and savings applications in Fineract, records mappings and supports durable retry/reconciliation. It does not mirror local financial transactions or activate remote savings accounts. See ADR 0003. No live Fineract instance is bundled; the automated HTTP contract tests simulate its API.
+The local ledger owns money. The integration provisions verified clients and savings applications in Fineract, records mappings and supports durable retry/reconciliation. It does not mirror local financial transactions or activate remote savings accounts. See ADR 0003. The optional local sandbox uses a pinned official Fineract image and isolated PostgreSQL containers. Automated HTTP contract tests remain available independently of the live sandbox.
+
+Live commissioning results are recorded in [the verification report](fineract-live-verification.md). The current customer model provisions natural persons with legalFormId=1; business entities require an explicit domain/API extension.
+
+## Reproducible local sandbox
+
+With Docker running and Java 17+ installed, start and verify the complete sandbox from the repository root:
+
+```powershell
+./scripts/start-fineract-sandbox.ps1 -JavaHome 'C:\tools\jdk-17.0.6+10'
+```
+
+Use your actual JDK path. The startup script generates local credentials in the Git-ignored `.env.fineract-sandbox`, starts `compose.fineract-sandbox.yaml`, initializes the default tenant, enables NGN, creates the zero-interest `Rova NGN Sandbox` product and a provisioning-only integration role/user, and rotates the seeded administrator password. It then starts the banking JAR and runs the banking and live Fineract demos. The initial migration can take several minutes. `-SkipBuild` reuses an existing packaged JAR; `-SkipDemos` restarts without creating additional demo fixtures.
+
+The Fineract image is pinned to digest `sha256:c7b24478c75f97aceb4385b3b2533e1879634b7ff8c2f0be4a80f05354604857`, built from upstream commit `fee1da55c2dc93cd2531624ab7fc8e81d8f56cb6`. This is the official development image verified for this local sandbox, not a production release or support commitment. PostgreSQL 18.3 holds Fineract's databases; PostgreSQL 17 holds the local banking database.
+
+| Component | Local address |
+|---|---|
+| Banking API | http://127.0.0.1:8080/api/v1 |
+| Banking Swagger UI | http://127.0.0.1:8080/swagger-ui/index.html |
+| Fineract API | http://127.0.0.1:8443/fineract-provider/api/v1 |
+| Banking PostgreSQL | 127.0.0.1:55432 |
+
+The sandbox deliberately uses HTTP on loopback rather than a self-signed HTTPS bypass. Ports are published only to 127.0.0.1; Fineract's database and debug interfaces are not published. The native banking API is bound to loopback and uses the same validated HTTP loopback exception as the adapter. Docker containers may communicate on their dedicated sandbox network. This setup is for local synthetic-data development only.
+
+The banking username is `demo`; its generated password is `LOCAL_DEMO_PASSWORD` in `.env.fineract-sandbox`. Fineract uses `rova-integration` with `FINERACT_PASSWORD`; the sandbox administrator is `mifos` with the rotated `FINERACT_ADMIN_PASSWORD`. Do not commit or paste the credential file. The integration role grants only READ_CLIENT, CREATE_CLIENT, ACTIVATE_CLIENT, READ_SAVINGSACCOUNT, CREATE_SAVINGSACCOUNT and READ_SAVINGSPRODUCT.
+
+Logs, API process metadata and JSON demo reports live under ignored `.sandbox/fineract/`, so `mvn clean` does not remove running-process metadata or sandbox credentials. The startup script only stops a prior API process if its recorded process start time and JAR match. Database volumes survive restarts. Failed startup leaves its containers and logs available for diagnosis.
+
+For background dispatch, set `FINERACT_WORKER_ENABLED=true` in `.env.fineract-sandbox` and rerun startup with `-SkipBuild -SkipDemos`. The live demo then verifies background dispatch by polling command status without calling the dispatch endpoint. You can also run `scripts/demo-fineract.ps1 -UseWorker` directly. Manual dispatch remains available for troubleshooting.
+
+Stop without deleting data:
+
+```powershell
+./scripts/stop-fineract-sandbox.ps1
+```
+
+This stops only the recorded banking API and this Compose project's containers, retaining the volumes and credentials. Rerun the start command to resume. Keep the credential file with the existing volumes: regenerating passwords while retaining initialized database volumes will not update database passwords.
 
 ## Get a test instance
 
-On this Windows machine Docker Desktop currently cannot start because WSL is absent. In an Administrator PowerShell, install WSL with `wsl --install`, complete any required restart and Linux setup, then enable Docker Desktop's WSL 2 engine. This is a machine setup step, not something the verification script performs. Follow [Microsoft's WSL installation guide](https://learn.microsoft.com/windows/wsl/install) and [Docker's WSL requirements](https://docs.docker.com/desktop/features/wsl/).
+Docker Desktop must be running with its WSL 2 Linux engine on Windows. In an Administrator PowerShell, install WSL with `wsl --install`, complete any required restart and Linux setup, then enable Docker Desktop's WSL 2 engine. This is a machine setup step, not something the verification script performs. Follow [Microsoft's WSL installation guide](https://learn.microsoft.com/windows/wsl/install) and [Docker's WSL requirements](https://docs.docker.com/desktop/features/wsl/).
 
 Alternatively, use a separate Linux VM with Docker. Keep sandbox access private; use synthetic customer data. You do not need a public shared demo or production account.
 

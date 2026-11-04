@@ -46,7 +46,7 @@ class FineractGatewayTest {
   private FineractCommand command(Kind kind) {
     String payload =
         kind == Kind.CUSTOMER
-            ? "{\"externalId\":\"stable-id\",\"fullname\":\"Ada\",\"officeId\":1,\"active\":true}"
+            ? "{\"externalId\":\"stable-id\",\"fullname\":\"Ada\",\"officeId\":1,\"active\":true,\"legalFormId\":1}"
             : "{\"externalId\":\"stable-id\",\"clientId\":42,\"productId\":7,\"_currency\":\"NGN\"}";
     return new FineractCommand(
         UUID.randomUUID(),
@@ -73,7 +73,7 @@ class FineractGatewayTest {
         .andExpect(header("Authorization", "Basic dGVzdDpzZWNyZXQ="))
         .andRespond(
             withSuccess(
-                "{\"id\":42,\"externalId\":\"stable-id\",\"officeId\":1,\"active\":true}",
+                "{\"id\":42,\"externalId\":\"stable-id\",\"officeId\":1,\"active\":true,\"legalFormId\":1}",
                 MediaType.APPLICATION_JSON));
     assertThat(gateway.find(command(Kind.CUSTOMER))).hasValue(42);
     server.verify();
@@ -101,7 +101,7 @@ class FineractGatewayTest {
         .expect(anything())
         .andRespond(
             withSuccess(
-                "{\"id\":42,\"externalId\":\"someone-else\",\"officeId\":1,\"active\":true}",
+                "{\"id\":42,\"externalId\":\"someone-else\",\"officeId\":1,\"active\":true,\"legalFormId\":1}",
                 MediaType.APPLICATION_JSON));
     assertThatThrownBy(() -> gateway.find(command(Kind.CUSTOMER)))
         .hasMessage("REMOTE_IDENTITY_MISMATCH");
@@ -191,5 +191,17 @@ class FineractGatewayTest {
             1,
             Map.of("ngn", 7L, "usd", 0L));
     assertThat(settings.savingsProducts()).containsExactlyEntriesOf(Map.of("NGN", 7L));
+  }
+
+  @Test
+  void clientCreationIncludesRequiredPersonLegalForm() {
+    server
+        .expect(requestTo("https://fineract.example/api/v1/clients"))
+        .andExpect(method(HttpMethod.POST))
+        .andExpect(jsonPath("$.legalFormId").value(1))
+        .andExpect(jsonPath("$.fullname").value("Ada"))
+        .andRespond(withSuccess("{\"resourceId\":42}", MediaType.APPLICATION_JSON));
+    assertThat(gateway.create(command(Kind.CUSTOMER))).isEqualTo(42);
+    server.verify();
   }
 }
