@@ -2,7 +2,7 @@
 
 `mvn spotless:apply` formats Java. `mvn verify` checks the format, Java/Maven versions, domain rules, architectural boundaries, signed JWT validation, staff permissions, transaction rollback and concurrency behavior.
 
-Default database: H2 PostgreSQL compatibility mode, portable Flyway migrations and Hibernate schema validation. Two PostgreSQL-specific tests are deliberately skipped with H2. CI must run the PostgreSQL job successfully before merging or releasing.
+Default database: H2 PostgreSQL compatibility mode, portable Flyway migrations and Hibernate schema validation. PostgreSQL-only integrity and statement-snapshot tests are deliberately skipped with H2. CI must run the PostgreSQL job successfully before merging or releasing.
 
 To run all tests against an isolated PostgreSQL 17 database, configure these PowerShell variables (never target a customer database):
 
@@ -39,3 +39,5 @@ To exercise an already running local API instead:
 The demo creates a fresh verified customer and two NGN accounts, deposits 1,000, transfers 250, disburses a principal-only loan of 200 and repays it. It asserts final balances of NGN 750 and NGN 250, a CLOSED loan with zero outstanding, and balanced deposit, transfer and repayment journal entries. Repeating each financial command with the original replay key (or loan ID for disbursement) must not move money twice. An assertion or HTTP failure makes the script fail. Each run creates unique fixtures; it is intended for local/test environments and does not delete financial records.
 
 If an older Windows JDK fails to start Tomcat with `Unable to establish loopback connection` and `UnixDomainSockets.connect0`, add `-UseTcpSelectorFallback`. This optional workaround points Java's Unix socket temporary directory at a nonexistent path inside the unique run directory, causing the JDK to fall back to TCP loopback for its selector wakeup pipe. It affects only the demo JVM. Prefer a supported, updated Java runtime for normal development.
+
+AccountStatementTest verifies historical balances, date boundaries, paginated history, CSV exports and staff permissions. With PostgreSQL it also tests a statement read while another transaction commits, proving totals and rows share a repeatable-read snapshot. See account-statements.md for the live HTTP/CSV demo.

@@ -50,6 +50,10 @@ flowchart LR
 
 See [architecture](docs/architecture.md), [ADRs](docs/adr/0001-transactional-modular-monolith.md), [coverage](docs/requirements.md), and [operations](docs/operations.md).
 
+## Account history and statements
+
+Account transaction history, dated statements and CSV downloads are available to OPERATIONS and AUDITOR staff. Statement balances come from posted customer-ledger entries, with repeatable-read consistency and bounded exports. See [API details and the live demo](docs/account-statements.md).
+
 ## Production configuration
 
 Use a configured OIDC provider and explicit HTTPS JWT_ISSUER_URI, JWT_JWK_SET_URI and JWT_AUDIENCE. Tokens require a nonempty subject and a roles array. Staff roles: OPERATIONS, COMPLIANCE, TELLER, CREDIT, AUDITOR; MONITORING is restricted to Prometheus scraping. JWT signatures, expiry, issuer and audience are verified. API docs are disabled outside the local profile. Combining `local` and `production` profiles fails startup.

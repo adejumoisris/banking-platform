@@ -17,6 +17,7 @@ src/main/java/com/rova/banking/
 |-- repository/                 # Persistence interfaces
 |-- model/                      # Account, Customer, Loan, Posting, LedgerEntry
 |-- dto/                        # Requests and response views
+|-- export/                     # Statement CSV serialization
 |-- domain/                     # Money, policies and business exceptions
 |-- integration/                # Remote service ports and sanitized failures
 |-- config/                     # Spring configuration and security
@@ -35,7 +36,7 @@ Optional Fineract provisioning uses a durable command table and scoped local/rem
 
 ## Consistency and lock order
 
-Use PostgreSQL READ COMMITTED. Acquire the loan row first for lending commands, then account rows in UUID order for posting. Refresh under lock so earlier unlocked reads cannot overwrite concurrent committed balances. Repository adapters flush existing transaction work before refresh to preserve changes made earlier in the same transaction. Transactions have bounded timeouts; production PostgreSQL also sets lock_timeout and statement_timeout. Do not retry only part of a transaction.
+Use PostgreSQL READ COMMITTED for financial writes. Account history and statement reads use read-only REPEATABLE READ so their totals and rows share a snapshot; see [statement semantics](account-statements.md). Acquire the loan row first for lending commands, then account rows in UUID order for posting. Refresh under lock so earlier unlocked reads cannot overwrite concurrent committed balances. Repository adapters flush existing transaction work before refresh to preserve changes made earlier in the same transaction. Transactions have bounded timeouts; production PostgreSQL also sets lock_timeout and statement_timeout. Do not retry only part of a transaction.
 
 Every transfer updates balances and appends one posting, a debit, a credit, an audit record and an outbox event. All use the same Spring-managed database transaction. Any failure rolls everything back. No external HTTP request runs while these financial locks are held. PostgreSQL deferred constraint triggers check a complete journal at commit, allowing posting and entries to be inserted in separate statements. Journal/posting/audit UPDATE and DELETE operations are blocked; runtime permissions additionally deny them.
 

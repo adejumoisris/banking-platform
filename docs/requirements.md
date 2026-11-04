@@ -7,7 +7,7 @@
 | Onboarding/accounts | Staff onboarding, manual compliance decision, currency accounts | Identity provider integration, lifecycle, customer ownership |
 | Payments | Atomic teller postings and internal transfers, retries, decimal/overflow protection | External collection/settlement, reversals, reconciliation |
 | Lending | Principal-only origination, activation, repayment | Underwriting, schedules, interest, fees, delinquency and approvals |
-| Ledger | Balanced transactional entries and bounded reads | Full chart of accounts, subledgers, close/reporting |
+| Ledger | Balanced entries, account history, historical statements and bounded CSV exports | Full chart of accounts, subledgers, financial close and regulatory reporting |
 | Security | HTTPS JWT issuer/JWK/audience, signature/expiry checks, staff RBAC, restricted metrics, local password configuration | Maker-checker, tenant/customer isolation, gateway controls, pen test |
 | Audit/events | Actor/request-aware audit and atomic outbox records | Independent signed audit archive; dispatcher and idempotent consumers |
 | SOLID/system design | Encapsulation, constructor injection, narrow ports and architectural tests | Extract services only after ownership/event contracts are designed |
