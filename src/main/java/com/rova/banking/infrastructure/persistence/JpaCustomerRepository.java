@@ -1,6 +1,7 @@
 package com.rova.banking.infrastructure.persistence;
 
-import com.rova.banking.customer.*;
+import com.rova.banking.model.Customer;
+import com.rova.banking.repository.CustomerRepository;
 import jakarta.persistence.*;
 import java.util.*;
 import org.springframework.stereotype.Repository;

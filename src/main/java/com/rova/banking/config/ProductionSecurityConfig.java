@@ -1,6 +1,5 @@
 package com.rova.banking.config;
 
-import com.rova.banking.SecurityConfig;
 import org.springframework.boot.context.properties.EnableConfigurationProperties;
 import org.springframework.context.annotation.*;
 import org.springframework.security.config.annotation.web.builders.HttpSecurity;

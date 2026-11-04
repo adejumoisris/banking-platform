@@ -2,9 +2,33 @@
 
 ## Boundaries and dependency direction
 
-Feature packages: customer, account, payment, loan and ledger. Each has an application service with one use-case responsibility and focused repository contracts. Infrastructure implements these ports. The API owns request/response records and authorization; no JPA entity is serialized directly. Common domain classes own exact money, account shape and business exceptions without HTTP or Spring dependencies. JPA annotations on feature entities are a deliberate pragmatic coupling; financial behavior is still independently testable.
+Packages are organized by layer. Controllers own HTTP routes and authorization; dto contains request/response records, so JPA entities are never serialized directly. Services implement banking use cases and transactions through repository interfaces. Infrastructure implements persistence and audit ports and the Fineract gateway. Model contains the JPA entities and their financial behavior. Domain contains framework-independent money, posting policies and business exceptions. Config contains application and security wiring; filter contains request correlation; exception contains HTTP exception handling. Audit contains the actor and activity contracts.
 
 SOLID: single-responsibility use cases; explicit policies for money/posting shapes; replaceable repository and actor/audit adapters; narrow repository interfaces; constructor injection at infrastructure boundaries. Adding interfaces solely to mirror every concrete service is avoided. ArchUnit prevents services depending on HTTP or concrete persistence adapters and enforces private entity fields.
+
+
+## Source layout
+
+```text
+src/main/java/com/rova/banking/
+|-- BankingApplication.java
+|-- controller/                 # HTTP endpoints
+|-- service/                    # Banking use cases and transactions
+|-- repository/                 # Persistence interfaces
+|-- model/                      # Account, Customer, Loan, Posting, LedgerEntry
+|-- dto/                        # Requests and response views
+|-- domain/                     # Money, policies and business exceptions
+|-- config/                     # Spring configuration and security
+|-- exception/                  # HTTP exception handling
+|-- filter/                     # Request correlation
+|-- audit/                      # Actor and activity contracts
+`-- infrastructure/
+    |-- persistence/            # JPA repository implementations
+    |-- audit/                  # Security and JDBC audit implementations
+    `-- fineract/               # External core banking gateway
+```
+
+Dependencies flow from controllers to services, then repository contracts and models. Infrastructure implements the contracts. Services do not depend on HTTP, DTOs or infrastructure adapters. Keep new classes in the matching layer and cover new dependencies with ArchitectureTest.
 
 ## Consistency and lock order
 

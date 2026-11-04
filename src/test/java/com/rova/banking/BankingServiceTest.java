@@ -2,12 +2,14 @@ package com.rova.banking;
 
 import static org.assertj.core.api.Assertions.*;
 
-import com.rova.banking.account.AccountService;
-import com.rova.banking.customer.CustomerService;
 import com.rova.banking.domain.*;
-import com.rova.banking.ledger.*;
-import com.rova.banking.loan.*;
-import com.rova.banking.payment.PaymentService;
+import com.rova.banking.model.LedgerEntry;
+import com.rova.banking.model.Loan;
+import com.rova.banking.service.AccountService;
+import com.rova.banking.service.CustomerService;
+import com.rova.banking.service.JournalService;
+import com.rova.banking.service.LoanService;
+import com.rova.banking.service.PaymentService;
 import java.math.BigDecimal;
 import java.util.UUID;
 import org.junit.jupiter.api.*;

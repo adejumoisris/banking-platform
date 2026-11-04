@@ -5,6 +5,7 @@ import static org.mockito.Mockito.*;
 import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.*;
 import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.*;
 
+import com.rova.banking.config.LocalSecurityConfig;
 import java.time.Instant;
 import java.util.*;
 import org.junit.jupiter.api.Test;

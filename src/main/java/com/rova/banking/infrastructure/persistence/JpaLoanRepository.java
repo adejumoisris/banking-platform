@@ -1,6 +1,7 @@
 package com.rova.banking.infrastructure.persistence;
 
-import com.rova.banking.loan.*;
+import com.rova.banking.model.Loan;
+import com.rova.banking.repository.LoanRepository;
 import jakarta.persistence.*;
 import java.util.*;
 import org.springframework.stereotype.Repository;

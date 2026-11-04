@@ -1,6 +1,7 @@
 package com.rova.banking.infrastructure.persistence;
 
-import com.rova.banking.ledger.*;
+import com.rova.banking.model.LedgerEntry;
+import com.rova.banking.repository.LedgerRepository;
 import jakarta.persistence.EntityManager;
 import java.util.*;
 import org.springframework.stereotype.Repository;

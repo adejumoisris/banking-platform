@@ -17,7 +17,13 @@ class ArchitectureTest {
           .should()
           .dependOnClassesThat()
           .resideInAnyPackage(
-              "org.springframework..", "jakarta.persistence..", "..api..", "..infrastructure..");
+              "org.springframework..",
+              "jakarta.persistence..",
+              "..controller..",
+              "..dto..",
+              "..filter..",
+              "..exception..",
+              "..infrastructure..");
 
   @ArchTest
   static final ArchRule servicesUsePorts =
@@ -29,7 +35,10 @@ class ArchitectureTest {
           .resideInAnyPackage(
               "jakarta.persistence..",
               "org.springframework.web..",
-              "..api..",
+              "..controller..",
+              "..dto..",
+              "..filter..",
+              "..exception..",
               "..infrastructure..");
 
   @ArchTest
