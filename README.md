@@ -60,7 +60,7 @@ Use an external PostgreSQL database with TLS, a restricted runtime role, separat
 
 This is a staff API for one banking entity. It does not implement customer self-service ownership, multitenancy, maker-checker approval, real KYC/AML/sanctions, interest/fees/amortization, FX, external settlement or regulatory reporting. A teller deposit records a posting; it does not collect external money.
 
-The optional FineractGateway is an outbound HTTP adapter for client reads/creation. It is not wired to local ledger writes. Fineract is not provisioned. The local ledger remains authoritative; write-through integration requires remote ID mapping, durable commands, reconciliation and recovery. Do not introduce dual ledger writes.
+The optional Fineract integration provisions verified clients and savings applications through durable commands, external-ID recovery and endpoint/tenant-scoped mappings. The local ledger remains authoritative. Provisioning does not send financial transactions or activate remote savings accounts. Fineract itself is not provisioned. See [sandbox setup and operation](docs/fineract-setup.md) and [ADR 0003](docs/adr/0003-fineract-provisioning.md) for configuration, the live demo and ledger ownership boundaries.
 
 Outbox records are durable delivery intents. A Kafka/webhook dispatcher and idempotent consumers are not yet implemented; no broker-delivery guarantee is claimed. Audit records are protected from ordinary DML in PostgreSQL, not from a privileged DBA. Archive signed audit exports in a separately controlled store for stronger tamper evidence.
 

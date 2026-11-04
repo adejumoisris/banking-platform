@@ -13,7 +13,7 @@
 | SOLID/system design | Encapsulation, constructor injection, narrow ports and architectural tests | Extract services only after ownership/event contracts are designed |
 | Quality | Regression/concurrency/security/architecture tests, formatting, PostgreSQL CI | Coverage goals, load/fault tests, production snapshot upgrades |
 | Operations | Non-root images, production configuration templates, probes, runbook | Managed secrets, registry, TLS gateway, monitoring/alerts, backup validation |
-| Apache Fineract | Optional client HTTP adapter | Authoritative integration, ID mapping, durable commands and recovery |
+| Apache Fineract | Optional durable client/savings provisioning, scoped mappings, leased dispatch and lookup-only recovery; local ledger authority | Live sandbox commissioning; remote financial-core migration, account lifecycle and reconciliation |
 | Kafka/Redis/OTel | Outbox foundation and documented boundaries | Actual broker dispatch, reference caching and telemetry export |
 | Sonar/dependencies | Sonar properties, dependency update configuration | Configured server, security reports and enforced quality gates |
 

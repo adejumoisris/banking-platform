@@ -18,6 +18,7 @@ src/main/java/com/rova/banking/
 |-- model/                      # Account, Customer, Loan, Posting, LedgerEntry
 |-- dto/                        # Requests and response views
 |-- domain/                     # Money, policies and business exceptions
+|-- integration/                # Remote service ports and sanitized failures
 |-- config/                     # Spring configuration and security
 |-- exception/                  # HTTP exception handling
 |-- filter/                     # Request correlation
@@ -29,6 +30,8 @@ src/main/java/com/rova/banking/
 ```
 
 Dependencies flow from controllers to services, then repository contracts and models. Infrastructure implements the contracts. Services do not depend on HTTP, DTOs or infrastructure adapters. Keep new classes in the matching layer and cover new dependencies with ArchitectureTest.
+
+Optional Fineract provisioning uses a durable command table and scoped local/remote mappings. HTTP runs outside local transactions, and uncertain creates recover by external-ID lookup. The local ledger remains authoritative. See [ADR 0003](adr/0003-fineract-provisioning.md) and [the sandbox guide](fineract-setup.md).
 
 ## Consistency and lock order
 

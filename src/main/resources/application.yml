@@ -41,6 +41,13 @@ fineract:
   enabled: ${FINERACT_ENABLED:false}
   url: ${FINERACT_URL:https://localhost:8443/fineract-provider/api/v1}
   tenant: ${FINERACT_TENANT:default}
+  office-id: ${FINERACT_OFFICE_ID:1}
+  worker-enabled: ${FINERACT_WORKER_ENABLED:false}
+  savings-products:
+    NGN: ${FINERACT_NGN_PRODUCT_ID:0}
+    USD: ${FINERACT_USD_PRODUCT_ID:0}
+    GBP: ${FINERACT_GBP_PRODUCT_ID:0}
+    EUR: ${FINERACT_EUR_PRODUCT_ID:0}
   username: ${FINERACT_USERNAME:}
   password: ${FINERACT_PASSWORD:}
 banking:
