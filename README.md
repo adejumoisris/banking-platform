@@ -1,6 +1,6 @@
 # Banking Platform
 
-A Java 17 / Spring Boot / PostgreSQL staff-operated banking backend. Customer onboarding, accounts, teller deposits and withdrawals, internal transfers, a balanced journal, and principal-only lending are implemented. This repository is a hardened reference system, not an approval to operate a regulated bank.
+A Java 17 / Spring Boot / PostgreSQL staff-operated banking application with a browser dashboard. Customer onboarding, accounts, teller deposits and withdrawals, internal transfers, a balanced journal, and principal-only lending are implemented. This repository is a hardened reference system, not an approval to operate a regulated bank.
 
 ## Local run
 
@@ -12,9 +12,13 @@ Copy-Item .env.example .env
 docker compose up --build
 ```
 
-API: http://localhost:8080/api/v1. Swagger: http://localhost:8080/swagger-ui/index.html. Local username: `demo`; password: the LOCAL_DEMO_PASSWORD you configured. The example password is only for local development. Production authentication uses signed JWTs and never registers this demo user.
+Staff dashboard: http://localhost:8080/. API: http://localhost:8080/api/v1. Swagger: http://localhost:8080/swagger-ui/index.html. Local username: `demo`; password: the LOCAL_DEMO_PASSWORD you configured. The example password is only for local development. Production authentication uses signed JWTs and never registers this demo user.
 
 Run `scripts/demo.ps1 -Password <your-local-password>` or import `docs/banking.postman_collection.json`; set the collection credentials and ID variables. Reuse a fixed Idempotency-Key for retries; the collection generates fresh keys by default.
+
+## Staff dashboard
+
+Open http://localhost:8080/ after starting the application. Customers, accounts, payments, loans, statements and Fineract are available in one role-aware workspace. See [sign-in, workflows and frontend checks](docs/staff-dashboard.md).
 
 ## Verify
 

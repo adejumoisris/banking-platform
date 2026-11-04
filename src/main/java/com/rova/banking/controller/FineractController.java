@@ -49,4 +49,24 @@ public class FineractController {
   public FineractCommandView reconcile(@PathVariable UUID id) {
     return FineractCommandView.of(service.reconcile(id));
   }
+
+  @GetMapping("/commands")
+  @PreAuthorize("hasAnyRole('OPERATIONS','AUDITOR')")
+  public org.springframework.http.ResponseEntity<
+          com.rova.banking.model.PageResult<FineractCommandView>>
+      commands(
+          @RequestParam(defaultValue = "") String q,
+          @RequestParam(required = false) com.rova.banking.model.FineractCommand.Status status,
+          @RequestParam(defaultValue = "0") int page,
+          @RequestParam(defaultValue = "25") int size) {
+    var result = service.commands(q, status, page, size);
+    return org.springframework.http.ResponseEntity.ok()
+        .cacheControl(org.springframework.http.CacheControl.noStore())
+        .body(
+            new com.rova.banking.model.PageResult<>(
+                result.items().stream().map(FineractCommandView::of).toList(),
+                result.page(),
+                result.size(),
+                result.totalElements()));
+  }
 }

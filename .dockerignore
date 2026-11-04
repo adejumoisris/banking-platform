@@ -5,3 +5,7 @@ build.log
 .idea
 .env*
 *.log
+node_modules
+.sandbox
+playwright-report
+test-results

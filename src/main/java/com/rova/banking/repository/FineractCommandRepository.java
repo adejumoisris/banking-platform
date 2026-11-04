@@ -30,4 +30,7 @@ public interface FineractCommandRepository {
       Instant now);
 
   boolean reconcile(String scope, UUID id, Instant now);
+
+  com.rova.banking.model.PageResult<FineractCommand> list(
+      String scope, String query, Status status, int page, int size);
 }

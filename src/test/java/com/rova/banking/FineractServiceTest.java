@@ -217,4 +217,18 @@ class FineractServiceTest {
     mvc.perform(get("/api/v1/integrations/fineract/commands/" + UUID.randomUUID()))
         .andExpect(status().isUnauthorized());
   }
+
+  @Test
+  @WithMockUser(roles = "AUDITOR")
+  void commandDirectoryIsScopedAndDoesNotExposePayloads() throws Exception {
+    var command = service.enqueueCustomer(customer());
+    mvc.perform(get("/api/v1/integrations/fineract/commands").param("q", command.id().toString()))
+        .andExpect(status().isOk())
+        .andExpect(jsonPath("$.totalElements").value(1))
+        .andExpect(jsonPath("$.items[0].id").value(command.id().toString()))
+        .andExpect(jsonPath("$.items[0].payload").doesNotExist())
+        .andExpect(jsonPath("$.items[0].scope").doesNotExist())
+        .andExpect(header().string("Cache-Control", "no-store"));
+    assertThat(commands.list("different-scope", "", null, 0, 20).items()).isEmpty();
+  }
 }

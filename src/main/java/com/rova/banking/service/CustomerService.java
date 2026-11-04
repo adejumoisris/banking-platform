@@ -35,4 +35,9 @@ public class CustomerService {
     activity.record("customer.verified", id);
     return customers.save(customer);
   }
+
+  @Transactional(readOnly = true, timeout = 5)
+  public Customer customer(UUID id) {
+    return customers.find(id).orElseThrow(() -> NotFound.resource("Customer"));
+  }
 }

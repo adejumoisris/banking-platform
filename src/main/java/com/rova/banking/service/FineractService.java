@@ -205,4 +205,21 @@ public class FineractService {
     commands.finish(
         command, status, remoteId, error, clock.instant().plusSeconds(delay), clock.instant());
   }
+
+  @Transactional(
+      readOnly = true,
+      isolation = org.springframework.transaction.annotation.Isolation.REPEATABLE_READ,
+      timeout = 5)
+  public com.rova.banking.model.PageResult<FineractCommand> commands(
+      String query, Status status, int page, int size) {
+    if (page < 0
+        || page > 100000
+        || size < 1
+        || size > 100
+        || query == null
+        || query.length() > 160) {
+      throw BusinessException.invalid("Invalid command search or pagination");
+    }
+    return commands.list(settings.scope(), query.strip(), status, page, size);
+  }
 }

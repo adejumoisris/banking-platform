@@ -14,7 +14,9 @@ public class SecurityConfig {
             session -> session.sessionCreationPolicy(SessionCreationPolicy.STATELESS))
         .authorizeHttpRequests(
             auth ->
-                auth.requestMatchers("/actuator/health", "/actuator/health/**")
+                auth.requestMatchers("/", "/index.html", "/assets/**", "/api/v1/ui/config")
+                    .permitAll()
+                    .requestMatchers("/actuator/health", "/actuator/health/**")
                     .permitAll()
                     .requestMatchers("/actuator/prometheus")
                     .hasRole("MONITORING")

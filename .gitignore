@@ -12,3 +12,7 @@ replay_pid*
 .spotless-index
 
 .sandbox/
+
+node_modules/
+playwright-report/
+test-results/

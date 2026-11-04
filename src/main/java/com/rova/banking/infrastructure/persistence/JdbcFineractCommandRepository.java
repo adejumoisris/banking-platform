@@ -146,4 +146,43 @@ public class JdbcFineractCommandRepository implements FineractCommandRepository 
             id)
         == 1;
   }
+
+  public com.rova.banking.model.PageResult<FineractCommand> list(
+      String scope, String query, Status status, int page, int size) {
+    String where = " where target_scope=?";
+    java.util.List<Object> args = new java.util.ArrayList<>();
+    args.add(scope);
+    if (!query.isEmpty()) {
+      where +=
+          " and (cast(id as varchar) like ? escape '!' or cast(local_id as varchar) like ? escape '!' or external_id like ? escape '!')";
+      String q =
+          "%"
+              + query
+                  .toLowerCase(java.util.Locale.ROOT)
+                  .replace("!", "!!")
+                  .replace("%", "!%")
+                  .replace("_", "!_")
+              + "%";
+      args.add(q);
+      args.add(q);
+      args.add(q);
+    }
+    if (status != null) {
+      where += " and status=?";
+      args.add(status.name());
+    }
+    long count =
+        jdbc.queryForObject(
+            "select count(*) from fineract_command" + where, Long.class, args.toArray());
+    args.add(size);
+    args.add(page * size);
+    var rows =
+        jdbc.query(
+            "select * from fineract_command"
+                + where
+                + " order by created_at desc,id desc limit ? offset ?",
+            this::read,
+            args.toArray());
+    return new com.rova.banking.model.PageResult<>(rows, page, size, count);
+  }
 }
