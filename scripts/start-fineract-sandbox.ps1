@@ -1,9 +1,15 @@
 param(
     [string]$JavaHome = $env:JAVA_HOME,
     [switch]$SkipBuild,
-    [switch]$SkipDemos
+    [switch]$SkipDemos,
+    [ValidateRange(1, 65535)]
+    [int]$BankingApiPort = 8080,
+    [ValidateRange(1, 86400)]
+    [int]$FineractStartupTimeoutSeconds = 3600
 )
 $ErrorActionPreference = 'Stop'
+$bankingBaseUrl = "http://127.0.0.1:$BankingApiPort"
+$fineractReadinessUrl = 'http://127.0.0.1:8443/fineract-provider/actuator/health/readiness'
 $project = [IO.Path]::GetFullPath((Join-Path $PSScriptRoot '..'))
 $envFile = Join-Path $project '.env.fineract-sandbox'
 $stateDirectory = Join-Path $project '.sandbox/fineract'
@@ -52,7 +58,7 @@ function Wait-Healthy([string]$url, [int]$seconds) {
         } catch { }
         Start-Sleep -Seconds 3
     }
-    throw "Service did not become healthy: $url. Inspect sandbox logs before restarting."
+    throw "Service did not become healthy within $seconds seconds: $url. Inspect sandbox logs before restarting."
 }
 function Get-AuthHeaders([string]$username, [string]$password) {
     $encoded = [Convert]::ToBase64String([Text.Encoding]::UTF8.GetBytes("${username}:$password"))
@@ -94,7 +100,8 @@ try {
     Write-Host 'Starting isolated Fineract and PostgreSQL containers...'
     & docker compose --env-file $envFile -f compose.fineract-sandbox.yaml up -d
     if ($LASTEXITCODE -ne 0) { throw 'Sandbox containers failed to start.' }
-    Wait-Healthy 'http://127.0.0.1:8443/fineract-provider/actuator/health' 900
+    Write-Host "Waiting up to $FineractStartupTimeoutSeconds seconds for Fineract readiness..."
+    Wait-Healthy $fineractReadinessUrl $FineractStartupTimeoutSeconds
     $adminHeaders = Get-AuthHeaders 'mifos' $config.FINERACT_ADMIN_PASSWORD
     $usingSeedPassword = $false
     try { $offices = Invoke-Fineract 'Get' '/offices' $null $adminHeaders }
@@ -176,7 +183,7 @@ try {
         LOCAL_DEMO_USERNAME = 'demo'
         LOCAL_DEMO_PASSWORD = $config.LOCAL_DEMO_PASSWORD
         SERVER_ADDRESS = '127.0.0.1'
-        SERVER_PORT = '8080'
+        SERVER_PORT = [string]$BankingApiPort
         FINERACT_ENABLED = 'true'
         FINERACT_URL = $config.FINERACT_URL
         FINERACT_TENANT = $config.FINERACT_TENANT
@@ -199,7 +206,9 @@ try {
     }
     $jars = @(Get-ChildItem -LiteralPath (Join-Path $project 'target') -Filter 'banking-platform-*.jar')
     if ($jars.Count -ne 1) { throw 'Expected one packaged banking application JAR.' }
-    if (Get-NetTCPConnection -LocalPort 8080 -State Listen -ErrorAction SilentlyContinue) { throw 'Port 8080 belongs to another process; it was not stopped.' }
+    if (Get-NetTCPConnection -LocalPort $BankingApiPort -State Listen -ErrorAction SilentlyContinue) {
+        throw "Port $BankingApiPort belongs to another process; it was not stopped. Choose a different -BankingApiPort."
+    }
     $socketDirectory = Join-Path $stateDirectory 'tcp-selector-only'
     if (Test-Path -LiteralPath $socketDirectory) { throw 'Socket fallback directory must not exist.' }
     $arguments = @('-Xms32m','-Xmx256m','-XX:+UseSerialGC','-XX:ActiveProcessorCount=2','-XX:TieredStopAtLevel=1',
@@ -207,11 +216,11 @@ try {
     $process = Start-Process -FilePath $java -ArgumentList $arguments -WorkingDirectory $project -WindowStyle Hidden -PassThru -RedirectStandardOutput (Join-Path $stateDirectory 'banking-api.log') -RedirectStandardError (Join-Path $stateDirectory 'banking-api-error.log')
     @{ processId = $process.Id; startTimeTicks = $process.StartTime.ToUniversalTime().Ticks; jarPath = $jars[0].FullName } |
         ConvertTo-Json | Set-Content -LiteralPath (Join-Path $stateDirectory 'api-process.json') -Encoding UTF8
-    Wait-Healthy 'http://127.0.0.1:8080/actuator/health' 180
+    Wait-Healthy "$bankingBaseUrl/actuator/health" 180
     if (-not $SkipDemos) {
-        $bankingResult = & (Join-Path $PSScriptRoot 'demo.ps1') -BaseUrl 'http://127.0.0.1:8080' -Password $config.LOCAL_DEMO_PASSWORD
+        $bankingResult = & (Join-Path $PSScriptRoot 'demo.ps1') -BaseUrl $bankingBaseUrl -Password $config.LOCAL_DEMO_PASSWORD
         $bankingResult | ConvertTo-Json | Set-Content -LiteralPath (Join-Path $stateDirectory 'banking-result.json') -Encoding UTF8
-        $liveResult = & (Join-Path $PSScriptRoot 'demo-fineract.ps1') -BaseUrl 'http://127.0.0.1:8080' -Password $config.LOCAL_DEMO_PASSWORD -UseWorker:($config.FINERACT_WORKER_ENABLED -eq 'true')
+        $liveResult = & (Join-Path $PSScriptRoot 'demo-fineract.ps1') -BaseUrl $bankingBaseUrl -Password $config.LOCAL_DEMO_PASSWORD -UseWorker:($config.FINERACT_WORKER_ENABLED -eq 'true')
         $remoteClient = Invoke-Fineract 'Get' "/clients/external-id/rova-customer-$($liveResult.LocalCustomerId)" $null $integrationHeaders
         $remoteAccount = Invoke-Fineract 'Get' "/savingsaccounts/external-id/rova-account-$($liveResult.LocalAccountId)" $null $integrationHeaders
         if ([long]$remoteClient.id -ne [long]$liveResult.FineractClientId -or [long]$remoteAccount.id -ne [long]$liveResult.FineractSavingsApplicationId -or $remoteAccount.currency.code -ne 'NGN') {
@@ -221,7 +230,7 @@ try {
         $liveResult
     }
     [pscustomobject]@{
-        Result = 'READY'; BankingApi = 'http://127.0.0.1:8080'; Swagger = 'http://127.0.0.1:8080/swagger-ui/index.html'
+        Result = 'READY'; BankingApi = $bankingBaseUrl; Swagger = "$bankingBaseUrl/swagger-ui/index.html"
         FineractApi = $config.FINERACT_URL; Tenant = $config.FINERACT_TENANT; OfficeId = $config.FINERACT_OFFICE_ID
         NgnSavingsProductId = $config.FINERACT_NGN_PRODUCT_ID; WorkerEnabled = $config.FINERACT_WORKER_ENABLED
         CredentialsFile = $envFile; ReportsDirectory = $stateDirectory

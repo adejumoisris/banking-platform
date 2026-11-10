@@ -14,11 +14,19 @@ With Docker running and Java 17+ installed, start and verify the complete sandbo
 ./scripts/start-fineract-sandbox.ps1 -JavaHome 'C:\tools\jdk-17.0.6+10'
 ```
 
-Use your actual JDK path. The startup script generates local credentials in the Git-ignored `.env.fineract-sandbox`, starts `compose.fineract-sandbox.yaml`, initializes the default tenant, enables NGN, creates the zero-interest `Rova NGN Sandbox` product and a provisioning-only integration role/user, and rotates the seeded administrator password. It then starts the banking JAR and runs the banking and live Fineract demos. The initial migration can take several minutes. `-SkipBuild` reuses an existing packaged JAR; `-SkipDemos` restarts without creating additional demo fixtures.
+Use your actual JDK path. The startup script generates local credentials in the Git-ignored `.env.fineract-sandbox`, starts `compose.fineract-sandbox.yaml`, initializes the default tenant, enables NGN, creates the zero-interest `Rova NGN Sandbox` product and a provisioning-only integration role/user, and rotates the seeded administrator password. It then starts the banking JAR and runs the banking and live Fineract demos. The script polls Fineract's `/fineract-provider/actuator/health/readiness` endpoint before configuring the tenant. Cold starts can take longer on constrained machines. `-FineractStartupTimeoutSeconds` defaults to 3600 (one hour), and `-BankingApiPort` defaults to 8080. `-SkipBuild` reuses an existing packaged JAR, and `-SkipDemos` restarts without creating additional demo fixtures.
+
+To reuse the build and run the sandbox on port 8082 alongside another banking API:
+
+```powershell
+./scripts/start-fineract-sandbox.ps1 -JavaHome 'C:\tools\jdk-17.0.6+10' -BankingApiPort 8082 -FineractStartupTimeoutSeconds 3600 -SkipBuild
+```
+
+The script prints the selected banking API and Swagger URLs. Use that port as `-BaseUrl` when running the demos separately.
 
 The Fineract image is pinned to digest `sha256:c7b24478c75f97aceb4385b3b2533e1879634b7ff8c2f0be4a80f05354604857`, built from upstream commit `fee1da55c2dc93cd2531624ab7fc8e81d8f56cb6`. This is the official development image verified for this local sandbox, not a production release or support commitment. PostgreSQL 18.3 holds Fineract's databases; PostgreSQL 17 holds the local banking database.
 
-| Component | Local address |
+| Component | Default local address |
 |---|---|
 | Banking API | http://127.0.0.1:8080/api/v1 |
 | Banking Swagger UI | http://127.0.0.1:8080/swagger-ui/index.html |
